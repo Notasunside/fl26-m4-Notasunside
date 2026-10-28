@@ -1,0 +1,25 @@
+# M4 Design Note
+
+<!-- Due Wed Oct 28, 11:59 pm. See specification Section 7. -->
+
+DESIGN_NOTE.md (one page, written before most of the code):
+1. Your components and the thread each one's functions run on.
+2. Your corpus states and the events that move between them.
+3. The event sequences that threaten R1 to R4 and how your design handles each, with
+two of them walked through step by step.
+4. The ownership path of one built corpus, from creation to destruction.
+5. One alternative you rejected, and why.
+
+
+1. Mainwindow coordinates the application on the GUI thread, and all widget functions, handlers for actions from user, changes in workspace, state transitions, and updates to Search/Term Inspector/ Context run on that thread. A BuildController will own one std::thread and its result std::future for now. It starts builds and uses a GUI thread QTimer to check for completion such that it doesnt have blocking characteristics. I will actively avoid that in the design. The worker receives a copy of the workspace and builds its own individual ProcessingCore, and, it will never access widgets/the live workspace. Promise/future return results and exceptions, wehre a shared cnacellation flag is the method by which the GUI request cancellation.
+
+2. I will track corpus validity separate from detecting whether a worker is running. Unavailable signifies that no usable corpus exists (will add functionality that it will detect existance even after reset, not just startup). Stale signifies that documents have changed since the last accepted build. Current means the accepted corpus matches the present workspace. Starting a build sets the worker's status to building and records the workspace version, and a successful result becomes current only if its version still matches. In any other case, it is discarded. Failure displays an error, leaving the corpus unavailable or likelier stale. Adding a document increments the workspace version and invalidates the corpus. Reset also increments the version, clears the workspace and processing displays, and requests cancellation. It's important to note that in my design, the version counter is never reset, which serves the purpose of preventing an old build from accidentally matching a later workspace. Selecting a document or editing a search query does not change the workspace version at all.
+
+
+3. For R1-responsiveness, the main threat is that a slow build could freeze the window, and rebuilding and the simulated per document delay run entirely on the worker. The GUI checks only whether the future is ready. Add Document, selection, reset/exit, and naturally input editing remain available. For R2 correctness, build starts using workspace version 4, the user adds a document (advancing the version to version 5), the GUI invalidates the corpus and clears dependent outputs, the version 4 build finishes, and the completion handler compares versions (and discards the result).It won't mark the corpus Current or display chunk count. That's not R2's responsibility. Search/Term Inspector/ and Context Handlers check validity before accessing the corpus, too. In the event of R3 failure, rebuilding may throw an exception, but the worker transfers it through the promise. The GUI then catches it when retrieving the result, reports the failure, clears status of Building, and goes ahead to permit another build. Cancellation is separately handled from failure, as they are not the same thing.
+
+R4 lifecycle is next. This is the walkthrough: user confirms Exit while a build is running at some status. The controller then requests cancellation and prevents new builds. Following that, the worker checks cancellation between bounded processing steps and even during shorter portions of the simulated delay, but the GUI remains responsive while awaiting finished status. Once completion is all done and detected, the controller joins the worker and permits destruction. Only one worker runs at a time. It is so that repeated build clicks are prevented from accumulating threads.
+
+4. The worker creates a 'std::unique_ptr<ProcessingCore>' and exclusively owns it while it's rebuilding. Once success it had, it transfers into the promise/future result for returns later. GUI retrieves the result and checks its version, where if valid, the ownership moves into MainWindow. If stale, the result is entirely destroyed. An accepted corpus is destroyed in scenarios of being invalidated, replaced, or when the application closes. Widgets never own it or retain pointers beyond its lifetime.
+
+5. In terms of rejected alternative, there was a plan I rejected that had the worker rebuild the same ProcessingCore used by the GUI. Search or reset could access or even destroy data while rebuilding was actively modifying it. A worker owned core, and workspace snapshot avoid concurrent access to that data. I rejected rebuilding the same ProcessingCore that the GUI uses because the GUI could read its data while the worker modifies it, making a case of data racing. Now and distinctly, building a separate core lets the GUI accept a completed result only if it still matches the workspace.
