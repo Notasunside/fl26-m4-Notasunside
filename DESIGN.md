@@ -29,3 +29,7 @@ One reply begins with a 4 byte payload lengthn in big endian, followed by that m
 ## Verification
 
 During my testing, student_tests run passed, AIWS_FAULT_ACCEPT_STALE bypasses the version check in finish_corpus_build() and was caught by discards_build_after_document_added; and, AIWS_FAULT_LOSE_FAILURE skips failure reporting. The action refreshes in the same function and thus caught by reports_build_failure_and_recovers as intended. I got the results expected and intended within a 60 second window. 
+
+## AI-use disclosure
+
+I asked Google for a list of relevant docker and powershell commands and it's 'AI mode' suggested some. When I accidentally committed m4 first changes to m3 in Github it told me the git commands to remove and check that the hash was the same in gradescope as on github. I built and tested the implementation in the course Docker container myself.
