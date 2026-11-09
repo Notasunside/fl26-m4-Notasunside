@@ -33,3 +33,12 @@ During my testing, student_tests run passed, AIWS_FAULT_ACCEPT_STALE bypasses th
 ## AI-use disclosure
 
 I asked Google for a list of relevant docker and powershell commands and it's 'AI mode' suggested some. When I accidentally committed m4 first changes to m3 in Github it told me the git commands to remove and check that the hash was the same in gradescope as on github. I built and tested the implementation in the course Docker container myself.
+
+## Pair programming log
+
+- **Partner:** Cristian Jimenez-Ebert
+- **Session 1:** Nov. 6, 2026, 12:00 PM–6:40 p.m. We worked on my M4 code, focusing on what happens when a document is added during a corpus build.
+- **Session 2:** Nov. 7, 2026, 12:00–5:40 p.m. We worked on Cristian's M4 code, focused on how the cr1 server reads a request split across multiple writes.
+- **My contribution as navigator:** I pointed out that one socket read might  return only part of the 4 byte length and suggested looping until allfour bytes had arrived.
+- **My partner's contribution as navigator:** Cristian suggested waiting for  Build Corpus to become enabled again before checking the corpus status. This, the test wouldnt pass while the old build was still running.
+- **What worked best:** Talking through each event in order helped us catch c/ases that were easy to miss when reading the code one function at a time
