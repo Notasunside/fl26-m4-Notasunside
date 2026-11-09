@@ -31,8 +31,8 @@ int main(int argc, char* argv[]) {
 
         //
     const QCommandLineOption socket_option(
-        QStringLiteral("ipcsocket"),
-        QStringLiteral("Unix socket path for remote document additions"),
+        QStringLiteral("ipc-socket"),
+        QStringLiteral("Unix socket path for remote document additions."),
         QStringLiteral("PATH"));
 
         parser.addOption(delay_option);
