@@ -18,12 +18,15 @@
 #include <QByteArray>
 #include <QCloseEvent>
 
+
 #include <QTimer>
 #include <chrono>
 
 
 #include <exception>
 #include <utility>
+#include <QMetaObject>
+
 
 
 namespace aiws::gui {
@@ -101,9 +104,9 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     connect(reset_button_, &QPushButton::clicked,this, &MainWindow::reset_application);
     connect(exit_button_, &QPushButton::clicked, this, &MainWindow::exit_application);
 
-    build_timer_ = new QTimer(this);
-    build_timer_->setInterval(25);
-    connect(build_timer_, &QTimer::timeout, this, &MainWindow::finish_corpus_build);
+    // build_timer_ = new QTimer(this);
+    // build_timer_->setInterval(25);
+    // connect(build_timer_, &QTimer::timeout, this, &MainWindow::finish_corpus_build);
 
     update_action_states();}
 
@@ -153,90 +156,85 @@ bool MainWindow::add_document_file(const QString& path) {
     status_label_->setText("Document added. To proceed, build the corpus.");
     return true; }
 
+
     //
-void MainWindow::build_corpus() {
-    if (close_pending_ || workspace_.documents().empty() ||  build_thread_.joinable()) { return; }
+    void MainWindow::build_corpus() {
+    if (close_pending_ || workspace_.documents().empty() || build_in_progress_) {return;}
+
     try {
-        Workspace snapshot = workspace_;
-        std::promise<std::unique_ptr<ProcessingCore>> promise;
-        build_result_ =promise.get_future();
-        build_version_ =workspace_version_;
-        build_cancel_ = std::make_shared<std::atomic<bool>>(false);
+        auto cancel= std::make_shared<std::atomic<bool>>(false);
+        BuildRequest request{ workspace_, workspace_version_, build_delay_ms_, cancel};
 
-        build_thread_ = std::thread( [snapshot = std::move(snapshot), promise = std::move(promise), cancel = build_cancel_, delay_ms = build_delay_ms_]() mutable {
-                detail::build_delay_ms = delay_ms;
-                detail::build_cancel_flag = cancel.get();
-
-                try {
-                    auto core =std::make_unique<ProcessingCore>();
-                    core->rebuild(snapshot);
-                    promise.set_value_at_thread_exit(std::move(core));
-                } catch (const detail::BuildCancelled&) {  promise.set_value_at_thread_exit(nullptr );
-                } catch (...){ promise.set_exception_at_thread_exit(std::current_exception());}
-            });
-    } catch (const std::exception& error) {
-        build_result_ = {};
-        build_cancel_.reset();
-        status_label_->setText( QString("Couldnt start build: %1").arg(QString::fromUtf8( error.what() )));
+        if (!build_thread_.joinable()) { build_thread_ = std::thread(&MainWindow::build_worker_loop, this); }
+        {
+            std::lock_guard<std::mutex> lock(build_mutex_);
+            pending_build_.emplace(std::move(request));
+            build_cancel_ = std::move(cancel);
+            build_in_progress_ = true;
+        }
+        build_ready_.notify_one(); } catch (const std::exception& error) {
+        status_label_->setText( QString("Couldn't start build: %1").arg(QString::fromUtf8(error.what())));
         return; }
 
     workspace_widget_->set_corpus_status("Corpus: Building...");
     status_label_->setText("Building...");
-    update_action_states();
-    build_timer_->start(); }
+    update_action_states(); }
+
+    //m5
+
+    void MainWindow::build_worker_loop() {
+    for (;;) { std::unique_lock<std::mutex> lock( build_mutex_ );
+        build_ready_.wait(lock , [this] { return build_worker_stopping_ ||pending_build_.has_value(); });
+        if (build_worker_stopping_) { return;}
+
+        BuildRequest request= std::move(*pending_build_ );
+        pending_build_.reset( );
+        lock.unlock();
+        auto result= std::make_shared<std::unique_ptr<ProcessingCore>>();
+        std::exception_ptr error;
+        detail::build_delay_ms= request.delay_ms;
+        detail::build_cancel_flag= request.cancel.get( );
+
+        try { if ( !request.cancel->load() ) 
+            {
+               auto core= std::make_unique<ProcessingCore>();
+                core->rebuild(request.snapshot);
+                *result= std::move(core); }}
+                catch (const detail::BuildCancelled&) {
+            //cancelledbuild returs empty result
+                } catch ( ... ) { error= std::current_exception(); }
+        detail::build_cancel_flag= nullptr;
+        QMetaObject::invokeMethod( this, [this,version= request.version,result, error] { handle_build_result( version, std::move( *result ), error );}, Qt::QueuedConnection); }}
 
 
     //
 
-void MainWindow::finish_corpus_build() {
-    if (!build_result_.valid() || build_result_.wait_for(std::chrono::milliseconds{0}) !=std::future_status::ready)
-        {  return; }
 
-    build_timer_->stop();
-    build_thread_.join();
+    void MainWindow::handle_build_result(std::uint64_t version, std::unique_ptr<ProcessingCore> core, std::exception_ptr error) {
+    build_in_progress_ = false;
     build_cancel_.reset();
 
-    if (close_pending_) {
-        build_result_ = {};
-        close();
-        return;}
+    if (close_pending_) { return;}
+    if (version != workspace_version_) {
+        update_action_states();
+        return;
+    }
 
-    try {
-        auto core =build_result_.get();
-        bool matches_workspace =build_version_ == workspace_version_;
-
-        // Simulate accepting an outdated build.
-        #ifdef AIWS_FAULT_ACCEPT_STALE
-            matches_workspace = true;
-        #endif
-
-        if (core && matches_workspace) {
-            processing_core_ =std::move(*core);
+    if (error) {
+        invalidate_corpus();
+        try { std::rethrow_exception(error); } 
+        catch (const std::exception& failure) {
+            status_label_->setText( QString("Corpus build failed: %1").arg(QString::fromUtf8(failure.what()))); } 
+            catch (...) { status_label_->setText("Corpus build failed."); } } 
+            else if (core) {
+            processing_core_= std::move(*core);
             corpus_current_ =true;
-            clear_processing_outputs();
+        clear_processing_outputs();
+        workspace_widget_->set_corpus_status( QString("Corpus: %1 chunks").arg(static_cast<qulonglong>(processing_core_.chunk_count())));
+        status_label_->setText("Corpus built."); }
+    update_action_states(); }
 
-            workspace_widget_->set_corpus_status( QString("Corpus: %1 chunks").arg(  static_cast<qulonglong>(processing_core_.chunk_count())));
-            status_label_->setText("Corpus built."); } } catch (const std::exception& error) {
-        #ifdef AIWS_FAULT_LOSE_FAILURE
-            return;
-        #endif
-
-        if (build_version_ == workspace_version_) {
-            invalidate_corpus();
-            status_label_->setText( QString("Corpus build failed: %1").arg(QString::fromUtf8(error.what())));  }  } catch (...) {
-        #ifdef AIWS_FAULT_LOSE_FAILURE
-            return;
-        #endif
-
-        if (build_version_ == workspace_version_) { invalidate_corpus();
-            status_label_->setText("Corpus build failed.");}}
-
-    update_action_states();}
-
-MainWindow::~MainWindow() {
-    build_timer_->stop();
-    request_build_cancellation();
-    if (build_thread_.joinable()) { build_thread_.join(); } }
+MainWindow::~MainWindow() { stop_build_worker(); }
 
     //
 void MainWindow::document_selected(int row) {
@@ -354,7 +352,7 @@ void MainWindow::exit_application() { if (exit_callback_ != nullptr) { exit_call
 
     //
 void MainWindow::update_action_states() { //ADDDOC1 10 ... Enable/disable GUI actions based on current state of workspace and corpus
-    workspace_widget_->set_build_corpus_enabled(!workspace_.documents().empty() && !build_thread_.joinable());
+        workspace_widget_->set_build_corpus_enabled( !close_pending_ && !workspace_.documents().empty() && !build_in_progress_ );
 
     bool can_process =corpus_current_ && search_widget_->has_query();
 
@@ -388,16 +386,22 @@ void MainWindow::set_build_delay_ms(int ms_per_document)
 void MainWindow::request_build_cancellation() noexcept {
     if (build_cancel_) {   build_cancel_->store(true); } }
 
-void MainWindow::closeEvent(QCloseEvent* event) {
-    if (!build_thread_.joinable()) {
-        QMainWindow::closeEvent(event);
-        return; }
-
-    event->ignore();
-    close_pending_ = true;
+    //m5
+void MainWindow::stop_build_worker() {
     request_build_cancellation();
-    setEnabled(false);
-    status_label_->setText("Closing..."); }
+    {
+        std::lock_guard<std::mutex> lock(build_mutex_);
+        build_worker_stopping_= true;
+        pending_build_.reset();
+    }
+
+    build_ready_.notify_one();
+    if (build_thread_.joinable()) { build_thread_.join(); } }
+
+void MainWindow::closeEvent(QCloseEvent* event) {
+    close_pending_ = true;
+    stop_build_worker();
+    QMainWindow::closeEvent(event); }
 
 
 }  // namespace aiws::gui

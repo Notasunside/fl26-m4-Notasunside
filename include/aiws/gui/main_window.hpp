@@ -7,6 +7,11 @@
 #include <thread>
 #include <atomic> 
 
+#include <condition_variable>
+#include <mutex>
+#include <optional>
+#include <exception>
+
 #include "aiws/processing_core.hpp"
 #include "aiws/workspace.hpp"
 
@@ -166,13 +171,40 @@ private:
     QPushButton* reset_button_{nullptr};
     QPushButton* exit_button_{nullptr};
 
-    void finish_corpus_build();
+    //
+        struct BuildRequest {
+        Workspace snapshot;
+        std::uint64_t version;
+        int delay_ms;
+        std::shared_ptr<std::atomic<bool>> cancel;
+    };
+
+    void build_worker_loop();
+    
 
     //
-    QTimer* build_timer_{nullptr};
-    std::thread build_thread_;
-    std::future<std::unique_ptr<ProcessingCore>> build_result_;
-    std::uint64_t build_version_{0};
+    void stop_build_worker();
+    void handle_build_result(std::uint64_t version, std::unique_ptr<ProcessingCore> core, std::exception_ptr error);
+    bool build_worker_stopping_{false};  
+
+
+    //
+
+
+    std::mutex build_mutex_;
+    std::condition_variable build_ready_;
+    std::optional<BuildRequest> pending_build_;
+    bool build_in_progress_{false};
+    //
+
+
+    // void finish_corpus_build();
+
+    // //
+    // QTimer* build_timer_{nullptr};
+        std::thread build_thread_;
+    // std::future<std::unique_ptr<ProcessingCore>> build_result_;
+    // std::uint64_t build_version_{0};
 
     void closeEvent(QCloseEvent* event) override;
     void request_build_cancellation() noexcept;
