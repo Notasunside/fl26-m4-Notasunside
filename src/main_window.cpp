@@ -150,8 +150,10 @@ bool MainWindow::add_document_file(const QString& path) {
     catch (const std::exception&) 
      {    return false; }
 
-    ++workspace_version_;
+        ++workspace_version_;
+    request_build_cancellation();
     workspace_widget_->add_document(title);
+    
     invalidate_corpus();
     status_label_->setText("Document added. To proceed, build the corpus.");
     return true; }
@@ -184,29 +186,39 @@ bool MainWindow::add_document_file(const QString& path) {
 
     void MainWindow::build_worker_loop() {
     for (;;) { std::unique_lock<std::mutex> lock( build_mutex_ );
-        build_ready_.wait(lock , [this] { return build_worker_stopping_ ||pending_build_.has_value(); });
-        if (build_worker_stopping_) { return;}
+        //one of the required switches
+            build_ready_.wait(lock, [this] {
+            #ifdef AIWS_FAULT_SILENT_SHUTDOWN
+                        return pending_build_.has_value();
+            #else
+                        return build_worker_stopping_ || pending_build_.has_value();
+            #endif
+                    });
+        if (build_worker_stopping_) {  return; }
 
-        BuildRequest request= std::move(*pending_build_ );
-        pending_build_.reset( );
+        BuildRequest request = std::move(*pending_build_);
+        pending_build_.reset();
         lock.unlock();
         auto result= std::make_shared<std::unique_ptr<ProcessingCore>>();
         std::exception_ptr error;
-        detail::build_delay_ms= request.delay_ms;
-        detail::build_cancel_flag= request.cancel.get( );
 
-        try { if ( !request.cancel->load() ) 
-            {
-               auto core= std::make_unique<ProcessingCore>();
+        detail::build_delay_ms = request.delay_ms;
+        detail::build_cancel_flag = request.cancel.get();
+
+        try {
+            if (!request.cancel->load()) {
+                emit build_started();
+
+                auto core = std::make_unique<ProcessingCore>();
                 core->rebuild(request.snapshot);
-                *result= std::move(core); }}
-                catch (const detail::BuildCancelled&) {
-            //cancelledbuild returs empty result
-                } catch ( ... ) { error= std::current_exception(); }
+                *result = std::move(core);
+            }
+        } catch (const detail::BuildCancelled&) {
+            // Leave the result empty when cancelled.
+        } catch (...) { error= std::current_exception(); }
+
         detail::build_cancel_flag= nullptr;
-        QMetaObject::invokeMethod( this, [this,version= request.version,result, error] { handle_build_result( version, std::move( *result ), error );}, Qt::QueuedConnection); }}
-
-
+        QMetaObject::invokeMethod( this, [this, version = request.version, result, error] { handle_build_result(version, std::move(*result), error);}, Qt::QueuedConnection); } }
     //
 
 

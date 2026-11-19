@@ -138,7 +138,13 @@ private slots:
      */
     void exit_application();
 
+//m5
+signals:
+    void build_started();
+
 private:
+    
+
     /**
      * @brief Updates availability of actions that depend on current application state.
      */
