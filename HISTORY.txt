@@ -1,4 +1,76 @@
-﻿commit fd1a03c6a1066282cfe70a187496c91ed803174a
+﻿commit 1b2c69e9d42468e887c0d5667ea8502856a49051
+Author: aurlun <aurlunsun@vt.edu>
+Date:   2026-11-20 18:53:46 -0500
+
+    got around to m5 state pattern
+
+ DESIGN.md                        |  86 +++++++
+ DESIGN_NOTE.md                   |  22 +-
+ include/aiws/gui/main_window.hpp |  30 ++-
+ include/aiws/ipc_server.hpp      | 176 ++++++-------
+ src/main_window.cpp              | 318 +++++++++++++++--------
+ tests/student_tests.cpp          | 535 +++++++++++++++++++++++++++++----------
+ 6 files changed, 839 insertions(+), 328 deletions(-)
+
+commit 92be4b32496e2c71f3570b7ac4cfde4fca183f86
+Author: aurlun <aurlunsun@vt.edu>
+Date:   2026-11-19 18:01:59 -0500
+
+    Add build cancellation and fault detection tests
+
+ include/aiws/build_control.hpp   |   7 +-
+ include/aiws/gui/main_window.hpp |   6 ++
+ src/main_window.cpp              |  48 +++++++++-----
+ tests/student_tests.cpp          | 139 ++++++++++++++++++++++++++++++++++++---
+ 4 files changed, 172 insertions(+), 28 deletions(-)
+
+commit c0841e950d7302493c204ddcfd56fe9393505fb4
+Author: aurlun <aurlunsun@vt.edu>
+Date:   2026-11-17 19:36:11 -0500
+
+    Reuse one worker for corpus builds
+
+ include/aiws/gui/main_window.hpp |  42 ++++++++--
+ src/main_window.cpp              | 166 ++++++++++++++++++++-------------------
+ 2 files changed, 122 insertions(+), 86 deletions(-)
+
+commit 841679358842bb13eaa6da64e89b1ce0c3592b22
+Author: aurlun <aurlunsun@vt.edu>
+Date:   2026-11-17 16:15:02 -0500
+
+    Renamed application target to ai_workspace_m5
+
+ CMakeLists.txt | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+
+commit be63abe26af8bbf0af4654b06c7a73805dcad4ce
+Author: aurlun <aurlunsun@vt.edu>
+Date:   2026-11-08 23:50:58 -0500
+
+    design decisions 3
+
+ DESIGN.md | 11 ++++++++++-
+ 1 file changed, 10 insertions(+), 1 deletion(-)
+
+commit 9580e09fc87171b71aea7af21244ba1a5b4cbf61
+Author: aurlun <aurlunsun@vt.edu>
+Date:   2026-11-08 23:39:58 -0500
+
+    fixed gradescope bug
+
+ src/main.cpp | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+commit b92aa17fcb7166499c0f1d5e58de8ed5cf4642ec
+Author: aurlun <aurlunsun@vt.edu>
+Date:   2026-11-08 23:29:04 -0500
+
+    Update submission history
+
+ HISTORY.txt | Bin 4768 -> 4741 bytes
+ 1 file changed, 0 insertions(+), 0 deletions(-)
+
+commit fd1a03c6a1066282cfe70a187496c91ed803174a
 Author: aurlun <aurlunsun@vt.edu>
 Date:   2026-11-08 23:26:39 -0500
 
