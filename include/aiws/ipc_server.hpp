@@ -61,7 +61,7 @@ private:
             return;}
 
         const bool queued = QMetaObject::invokeMethod(window, [window, path] { window->add_document_file(path); },  Qt::QueuedConnection);
-        send_frame(client, queued ? "0" : "Couldnt queue document", deadline);
+        send_frame(client, queued ? "0" : "1Couldnt queue document", deadline);
     }
 
         //

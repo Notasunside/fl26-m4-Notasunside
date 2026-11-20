@@ -79,6 +79,8 @@ public:
      */
     void set_build_delay_ms(int ms_per_document);
 
+    std::thread::id build_worker_id() const noexcept { return build_thread_.get_id(); }
+
     // Everything below this line is the M3 design. In M4 it is yours to
     // change: add, remove, or redesign private members, slots, and helpers.
     ~MainWindow() override;
@@ -143,6 +145,31 @@ signals:
     void build_started();
 
 private:
+    class CorpusState {
+    public:
+        virtual ~CorpusState() = default;
+
+        virtual void build(MainWindow& window) = 0;
+        virtual void workspace_changed(MainWindow& window) = 0;
+        virtual void reset(MainWindow& window)= 0;
+
+        virtual void completed( MainWindow& window, std::uint64_t version, std::unique_ptr<ProcessingCore> core, std::exception_ptr error )= 0;
+        virtual void close(MainWindow& window)= 0;
+        virtual bool can_build() const noexcept= 0;
+        virtual bool can_process() const noexcept= 0; };
+
+    class NotBuiltState;
+    class BuildingState;
+    class CancellingState;
+    class CurrentState;
+    class ClosingState;
+
+    //m5
+        std::unique_ptr<CorpusState> corpus_state_;
+
+            void change_state(std::unique_ptr<CorpusState> next);
+            bool start_build();
+            void clear_workspace();
     
 
     /**
@@ -166,7 +193,6 @@ private:
     Workspace workspace_;
     std::uint64_t workspace_version_{0};
     ProcessingCore processing_core_;
-    bool corpus_current_{false};
     ExitCallback exit_callback_{nullptr};
 
     WorkspaceWidget* workspace_widget_{nullptr};
@@ -200,7 +226,6 @@ private:
     std::mutex build_mutex_;
     std::condition_variable build_ready_;
     std::optional<BuildRequest> pending_build_;
-    bool build_in_progress_{false};
     //
 
 
@@ -217,7 +242,6 @@ private:
 
     std::shared_ptr<std::atomic<bool>> build_cancel_;
     int build_delay_ms_{0};
-    bool close_pending_{false};
 };
 
 }  // namespace aiws::gui
