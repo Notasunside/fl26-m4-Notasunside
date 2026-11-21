@@ -1,4 +1,23 @@
-﻿commit de7c644333f68bfd9a7f8da52fdc61dc0f8ca5c9
+﻿commit 47889cd547c668d82969e3c4b8248fd499238c99
+Author: aurlun <aurlunsun@vt.edu>
+Date:   2026-11-20 22:38:11 -0500
+
+    removed m4 design decisions and fixed video link
+
+ DESIGN.md | 55 +------------------------------------------------------
+ VIDEO.md  |  9 +++------
+ 2 files changed, 4 insertions(+), 60 deletions(-)
+
+commit 05cbf80bf09175a2a94befeb2094c95ba357dc06
+Author: aurlun <aurlunsun@vt.edu>
+Date:   2026-11-20 22:08:10 -0500
+
+    Update M5 submission history
+
+ HISTORY.txt | 21 ++++++++++++++++++++-
+ 1 file changed, 20 insertions(+), 1 deletion(-)
+
+commit de7c644333f68bfd9a7f8da52fdc61dc0f8ca5c9
 Author: aurlun <aurlunsun@vt.edu>
 Date:   2026-11-20 22:07:36 -0500
 
