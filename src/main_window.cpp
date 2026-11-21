@@ -67,20 +67,16 @@ class MainWindow::CancellingState final : public MainWindow::BuildingState {
 public:
     void build(MainWindow& window) override;
 
-    bool can_build() const noexcept override {
-        return true;
+    bool can_build() const noexcept override {return true;
     }
 
     void workspace_changed(MainWindow& window) override;
+
     void reset(MainWindow& window) override;
 
-    void completed(
-        MainWindow& window,
-        std::uint64_t version,
-        std::unique_ptr<ProcessingCore> core,
-        std::exception_ptr error) override;
-};
+    void completed(MainWindow& window, std::uint64_t version,std::unique_ptr<ProcessingCore> core, std::exception_ptr error) override;};
 
+    //
 class MainWindow::ClosingState final : public MainWindow::CorpusState {
 public:
     void build(MainWindow&) override {}
@@ -155,10 +151,11 @@ void MainWindow::BuildingState::completed( MainWindow& window, std::uint64_t ver
     }
 
     window.processing_core_ =std::move(*core);
+    
     window.clear_processing_outputs();
 
-    window.workspace_widget_->set_corpus_status(
-        QString("Corpus: %1 chunks").arg(static_cast<qulonglong>(window.processing_core_.chunk_count())));
+    window.workspace_widget_->set_corpus_status( QString("Corpus: %1 chunks").arg(static_cast<qulonglong>(window.processing_core_.chunk_count())));
+
     window.status_label_->setText("Corpus built.");
 
     window.change_state(std::make_unique<CurrentState>()); }
@@ -272,16 +269,12 @@ void MainWindow::set_exit_callback(ExitCallback callback) noexcept { exit_callba
 
     //
 void MainWindow::add_document() {
-    const QString path = QFileDialog::getOpenFileName( this, "Add Document", QString(),
-        "Text files (*.txt);;All files (*)");
+    const QString path = QFileDialog::getOpenFileName( this, "Add Document", QString(), "Text files (*.txt);;All files (*)");
 
     if (path.isEmpty()) 
         { return;}
 
-    if (!add_document_file(path)) {
-        QMessageBox::warning(
-            this, "Add Document Error",
-            "Could not add the selected document."); }}
+    if (!add_document_file(path)) { QMessageBox::warning( this, "Add Document Error",  "Couldnt add the selected document."); }}
 
 bool MainWindow::add_document_file(const QString& path) {
     const QFileInfo info(path);
@@ -297,11 +290,7 @@ bool MainWindow::add_document_file(const QString& path) {
      {return false;}
 
     const QString title = info.fileName();
-    try {
-        workspace_.add_document(Document(
-            info.absoluteFilePath().toStdString(),
-            title.toStdString(),
-            QString::fromUtf8(contents).toStdString())); } 
+    try {workspace_.add_document(Document(info.absoluteFilePath().toStdString(),title.toStdString(), QString::fromUtf8(contents).toStdString())); } 
     catch (const std::exception&) 
      {    return false; }
 
@@ -314,6 +303,9 @@ bool MainWindow::add_document_file(const QString& path) {
 
     //
 void MainWindow::build_corpus() { corpus_state_->build(*this);}
+
+
+//PAN1 -- START_BUILT
 
 bool MainWindow::start_build() {
     try {
@@ -341,7 +333,7 @@ bool MainWindow::start_build() {
     return true; }
 //
 
-//
+//PAN2 -- BUILD_WORKER_LOOP
 void MainWindow::build_worker_loop() {
     for (;;) {
         std::unique_lock<std::mutex> lock(build_mutex_);
@@ -384,7 +376,7 @@ void MainWindow::build_worker_loop() {
 
         //fix: M5 R2/R3: unwanted builds stop early; the next build does not wait (0.5/1)
 void MainWindow::handle_build_result(std::uint64_t version, std::unique_ptr<ProcessingCore> core, std::exception_ptr error) {
-    // An obsolete completion must not clear the newer request'scancellation flag or change its lifecycle state.
+    // from requirements .....a obsolete completion must not clear the newer request'scancellation flag or change its lifecycle state
     if (version != build_request_version_) { return; }
     build_cancel_.reset();
     corpus_state_->completed(*this, version, std::move(core), error); }
@@ -437,23 +429,16 @@ void MainWindow::build_context_requested(int token_budget) {
         return; }
         
     try {
-        auto items = processing_core_.build_context(
-            search_widget_->query().toStdString(),
-            search_widget_->result_count(),
-            static_cast<std::size_t>(token_budget));
-
+        auto items= processing_core_.build_context(search_widget_->query().toStdString(),search_widget_->result_count(), static_cast<std::size_t>(token_budget));
         context_widget_->set_context(items);
         status_label_->setText("Context built.");
-    } catch (const std::exception& error) {
-        QMessageBox::warning(
-            this, "Context Error",
-            QString::fromUtf8(error.what())); } }
+    } catch (const std::exception& error) {QMessageBox::warning(this, "Context Error", QString::fromUtf8(error.what())); }}
 
 
     //
 void MainWindow::source_document_requested( const QString& document_id) {
 
-    const auto& documents = workspace_.documents();
+    const auto& documents= workspace_.documents();
     for (std::size_t row = 0; row < documents.size(); ++row) {
         if (documents[row].id() == document_id.toStdString()) 
             { workspace_widget_->select_document( static_cast<int>(row));
@@ -469,9 +454,9 @@ void MainWindow::term_inspection_requested(
     if (!corpus_state_->can_process() || term.trimmed().isEmpty()) { return; }
 
     try {
-        std::size_t df = processing_core_.document_frequency( term.toStdString());
+        std::size_t df= processing_core_.document_frequency( term.toStdString());
         bool has_chunk = !chunk_id.isEmpty();
-        std::size_t tf = 0;
+        std::size_t tf= 0;
 
         if (has_chunk) { tf = processing_core_.term_frequency(term.toStdString(), chunk_id.toStdString());}
         term_inspector_widget_->set_statistics( df, has_chunk, tf);
@@ -480,7 +465,7 @@ void MainWindow::term_inspection_requested(
         } catch (const std::exception& error) {
         term_inspector_widget_->clear_statistics();
 
-        QMessageBox::warning(this, "Inspection Error",QString::fromUtf8(error.what())); }}
+        QMessageBox::warning(this, "Inspection Error",QString::fromUtf8(error.what() )); }}
 
     //
 void MainWindow::reset_application() {
@@ -537,6 +522,8 @@ void MainWindow::request_build_cancellation() noexcept {
     if (build_cancel_) {   build_cancel_->store(true); } }
 
     //m5
+
+    //PAN3 -- START_BUILT   
 void MainWindow::stop_build_worker() {
     request_build_cancellation();
     {
