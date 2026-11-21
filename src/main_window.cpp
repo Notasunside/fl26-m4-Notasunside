@@ -65,12 +65,21 @@ public:
 
 class MainWindow::CancellingState final : public MainWindow::BuildingState {
 public:
-    void workspace_changed(MainWindow& window) override;
+    void build(MainWindow& window) override;
 
+    bool can_build() const noexcept override {
+        return true;
+    }
+
+    void workspace_changed(MainWindow& window) override;
     void reset(MainWindow& window) override;
 
-    void completed(  MainWindow& window,std::uint64_t version, std::unique_ptr<ProcessingCore> core, std::exception_ptr error) override;
-    };
+    void completed(
+        MainWindow& window,
+        std::uint64_t version,
+        std::unique_ptr<ProcessingCore> core,
+        std::exception_ptr error) override;
+};
 
 class MainWindow::ClosingState final : public MainWindow::CorpusState {
 public:
