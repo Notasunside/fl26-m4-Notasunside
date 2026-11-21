@@ -1,4 +1,23 @@
-﻿commit ca5e08280c6164c110a9082d24e5511a6532a61d
+﻿commit de7c644333f68bfd9a7f8da52fdc61dc0f8ca5c9
+Author: aurlun <aurlunsun@vt.edu>
+Date:   2026-11-20 22:07:36 -0500
+
+    ease of scrolling
+
+ src/main_window.cpp     |  59 ++++------
+ tests/student_tests.cpp | 291 +++++++++++++++++++++++++++++++++---------------
+ 2 files changed, 226 insertions(+), 124 deletions(-)
+
+commit c41bb7af6c86e120baef5b14f1974c73ccaa08f9
+Author: aurlun <aurlunsun@vt.edu>
+Date:   2026-11-20 21:49:57 -0500
+
+    Update M5 submission history
+
+ HISTORY.txt | 29 ++++++++++++++++++++++++++++-
+ 1 file changed, 28 insertions(+), 1 deletion(-)
+
+commit ca5e08280c6164c110a9082d24e5511a6532a61d
 Author: aurlun <aurlunsun@vt.edu>
 Date:   2026-11-20 21:48:25 -0500
 
