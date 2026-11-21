@@ -1,4 +1,31 @@
-﻿commit e42a860562644ff1ec404ea3d8925a24eca19e84
+﻿commit ca5e08280c6164c110a9082d24e5511a6532a61d
+Author: aurlun <aurlunsun@vt.edu>
+Date:   2026-11-20 21:48:25 -0500
+
+    Add M5 walkthrough video link
+
+ VIDEO.md | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+commit 239c7da5c106d9068c9552fe146d4216b9aa35ae
+Author: aurlun <aurlunsun@vt.edu>
+Date:   2026-11-20 21:42:23 -0500
+
+    Add M5 walkthrough video link
+
+ VIDEO.md | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+commit bd90f13e520ffb23daffc9bcecc341f21078b198
+Author: aurlun <aurlunsun@vt.edu>
+Date:   2026-11-20 19:28:54 -0500
+
+    Refresh M5 submission history
+
+ HISTORY.txt | 31 ++++++++++++++++++++++++++++++-
+ 1 file changed, 30 insertions(+), 1 deletion(-)
+
+commit e42a860562644ff1ec404ea3d8925a24eca19e84
 Author: aurlun <aurlunsun@vt.edu>
 Date:   2026-11-20 19:24:42 -0500
 
