@@ -1,4 +1,33 @@
-﻿commit 1b2c69e9d42468e887c0d5667ea8502856a49051
+﻿commit e42a860562644ff1ec404ea3d8925a24eca19e84
+Author: aurlun <aurlunsun@vt.edu>
+Date:   2026-11-20 19:24:42 -0500
+
+    fix replacement
+
+ src/main_window.cpp | 15 ++++++++++++---
+ 1 file changed, 12 insertions(+), 3 deletions(-)
+
+commit de5b82881826f3d5188e3f52ded0508841ed9aa6
+Author: aurlun <aurlunsun@vt.edu>
+Date:   2026-11-20 19:06:30 -0500
+
+    fix attempt for failure: M5 R2/R3: unwanted builds stop early; the next build does not wait (0.5/1)
+
+ DESIGN.md                        |  2 +-
+ include/aiws/gui/main_window.hpp |  5 +++++
+ src/main_window.cpp              | 28 ++++++++++++++++++----------
+ 3 files changed, 24 insertions(+), 11 deletions(-)
+
+commit 50d5240d21c36dc4ba948e73c28f7a63631b84a8
+Author: aurlun <aurlunsun@vt.edu>
+Date:   2026-11-20 18:53:59 -0500
+
+    Update project history for M5
+
+ HISTORY.txt | 74 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++-
+ 1 file changed, 73 insertions(+), 1 deletion(-)
+
+commit 1b2c69e9d42468e887c0d5667ea8502856a49051
 Author: aurlun <aurlunsun@vt.edu>
 Date:   2026-11-20 18:53:46 -0500
 
