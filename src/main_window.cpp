@@ -35,7 +35,11 @@ namespace aiws::gui {
 
     class MainWindow::NotBuiltState : public MainWindow::CorpusState {
 public:
+
+    //fix failed test: M5 R2/R3: unwanted builds stop early; the next build does not wait (0.5/1)
     void build(MainWindow& window) override;
+        bool can_build() const noexcept override {return true; }
+
     void workspace_changed(MainWindow& window) override;
 
     void reset(MainWindow& window) override;
@@ -43,7 +47,6 @@ public:
     void completed(  MainWindow&, std::uint64_t, std::unique_ptr<ProcessingCore>,  std::exception_ptr) 
     override { }
     void close(MainWindow& window) override;
-    bool can_build() const noexcept override {return true; }
 
     bool can_process() const noexcept override { return false; }
 };
@@ -160,14 +163,15 @@ void MainWindow::CancellingState::reset(MainWindow& window) {
     window.request_build_cancellation();
     window.clear_workspace(); }
 
-void MainWindow::CancellingState::completed(
-    MainWindow& window,
-    std::uint64_t,
-    std::unique_ptr<ProcessingCore>,
-    std::exception_ptr) {
-
+void MainWindow::CancellingState::completed(MainWindow& window,std::uint64_t, std::unique_ptr<ProcessingCore>, std::exception_ptr) {
     window.invalidate_corpus();
     window.change_state(std::make_unique<NotBuiltState>()); }
+
+    //fix: M5 R2/R3: unwanted builds stop early; the next build does not wait (0.5/1)
+void MainWindow::CancellingState::build(MainWindow& window) {
+    if (window.workspace_.documents().empty()) {return;}
+
+    if (window.start_build()) {        window.change_state(std::make_unique<BuildingState>()); }}
 
 
     //
@@ -314,7 +318,9 @@ bool MainWindow::start_build() {
             pending_build_.emplace(std::move(request));
         }
 
-        build_cancel_ = std::move(cancel);
+         build_cancel_= std::move(cancel);
+         //fix: M5 R2/R3: unwanted builds stop early; the next build does not wait (0.5/1)
+        build_request_version_ = workspace_version_;
         build_ready_.notify_one();
     } catch (const std::exception& error) {
         status_label_->setText( QString("Couldn't start build: %1").arg(QString::fromUtf8(error.what())));
@@ -367,8 +373,10 @@ void MainWindow::build_worker_loop() {
         QMetaObject::invokeMethod( this,[this, version = request.version, result, error] { handle_build_result(version, std::move(*result), error);},  Qt::QueuedConnection); }}
 
 
-        //
-void MainWindow::handle_build_result( std::uint64_t version,std::unique_ptr<ProcessingCore> core, std::exception_ptr error ) {
+        //fix: M5 R2/R3: unwanted builds stop early; the next build does not wait (0.5/1)
+void MainWindow::handle_build_result(std::uint64_t version, std::unique_ptr<ProcessingCore> core, std::exception_ptr error) {
+    // An obsolete completion must not clear the newer request'scancellation flag or change its lifecycle state.
+    if (version != build_request_version_) { return; }
     build_cancel_.reset();
     corpus_state_->completed(*this, version, std::move(core), error); }
 

@@ -192,6 +192,11 @@ private:
 
     Workspace workspace_;
     std::uint64_t workspace_version_{0};
+
+    //fix failed test: M5 R2/R3: unwanted builds stop early; the next build does not wait (0.5/1)
+        std::uint64_t build_request_version_{0};
+    //
+
     ProcessingCore processing_core_;
     ExitCallback exit_callback_{nullptr};
 

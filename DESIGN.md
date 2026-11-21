@@ -49,7 +49,7 @@ CancellingState, as mentioned to be the intended path previously. The worker det
 
 ### May the user request Build during a build?
 
-BuildingState::build() and inherited CancellingState behavior must ignore requests and their can_build() methods disable the button.
+Build requests during BuildingState become ignored, CancellingState::build() accepts a replacement request through start_build() and transitions to BuildingState, the worker takes the replacement after cancellation, and handle_build_result() ignores completions belonging to any and all older requests.
 
 ### What happens when a remote add arrives mid-build?
 
